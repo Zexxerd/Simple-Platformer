@@ -1,6 +1,6 @@
-// Program Name: IMAGEC
+// Program Name: ARBIPLAT
 // Author(s): SomeCoolGuy
-// Description: Image stamping!
+// Description: A Platformer
 /* Keep these headers */
 #include <tice.h>
 
