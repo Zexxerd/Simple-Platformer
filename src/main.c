@@ -25,10 +25,10 @@
 // including stdarg.h, setjmp.h, assert.h, ctype.h, float.h, iso646.h, limits.h, errno.h
 
 /* Put your function prototypes here */
-/*int16_t playerCAdjust(newPlayer n);
-int16_t blockCAdjust(int16_t block[4]);
-bool collision(newPlayer n,int16_t block[4]);
-bool levelCollision(newPlayer n,int16_t * level);*/
+/*int playerCAdjust(newPlayer n);
+int blockCAdjust(int block[4]);
+bool collision(newPlayer n,int block[4]);
+bool levelCollision(newPlayer n,int * level);*/
 /* Put all your globals here. */
 
 /*In Python, a level-set would look like this:
@@ -55,15 +55,15 @@ bool levelCollision(newPlayer n,int16_t * level);*/
 
 /*for (char i = 0;i < sizeof(level)/sizeof(level[0]);i++){
     // allocate space for each Rect (4-element array) item
-    level[i] = (int16_t[4] *) malloc(10 * sizeof(int16_t[4]));
+    level[i] = (int[4] *) malloc(10 * sizeof(int[4]));
 }
 level[i][0] = {0,220,320,20};*/
 /* Main program */
 void main(void) {
     uint8_t nLevels = 1;
     uint8_t curLevel = 0;
-    uint16_t nBlocks[1] = {5};
-    int16_t levels[1][5][4] = {
+    unsigned int nBlocks[1] = {5};
+    int levels[1][5][4] = {
         {
             {0.0,224.0,320.0,16.0},
             {0.0,80.0,48.0,80.0},
@@ -73,15 +73,15 @@ void main(void) {
         },
     };
     // {lower x,higher x,lower y,higher y}
-    int16_t levelLimits[1][2][2] = {
+    int levelLimits[1][2][2] = {
         {
             {0,320},{0,240}
         }
     };
-    int16_t levelWin[1][4] = {
+    int levelWin[1][4] = {
         {304.0,0.0,16.0,224.0},
     };
-    int16_t pSpawn[1][2] = {
+    int pSpawn[1][2] = {
         {0,0}
     };
     /*First element is the background color.
@@ -103,28 +103,28 @@ void main(void) {
     
     typedef struct {
         uint8_t color;
-        int16_t x;
-        int16_t y;
+        int x;
+        int y;
         int8_t xvel;
         int8_t yvel;
         bool falling;
-        int16_t width;
-        int16_t height;
-        int16_t spawn[2];
+        int width;
+        int height;
+        int spawn[2];
     } newPlayer;
     /*Camera is currently set up, all that is
      needed is to implement it.*/
     typedef struct {
-        int16_t x;
-        int16_t y;
-        int16_t xllim; //lower limit (0)
-        int16_t yllim; //lower limit (0)
-        int16_t xulim; //upper limit (LCD_WIDTH)
-        int16_t yulim; //upper limit (LCD_HEIGHT)
-        int16_t (*pFunc) (newPlayer n,int16_t x,int16_t y);
-        int16_t (*bFunc) (int16_t **blocks,int16_t x,int16_t y,uint16_t length);
+        int x;
+        int y;
+        int xllim; //lower limit (0)
+        int yllim; //lower limit (0)
+        int xulim; //upper limit (LCD_WIDTH)
+        int yulim; //upper limit (LCD_HEIGHT)
+        int (*pFunc) (newPlayer n,int x,int y);
+        int (*bFunc) (int **blocks,int x,int y,unsigned int length);
     } camera;
-    /*void initCamera(camera * c,int16_t xy[2],int16_t lims[2][2]){
+    /*void initCamera(camera * c,int xy[2],int lims[2][2]){
      c->x = xy[0];
      c->y = xy[1];
      c->xllim = lims[0][0];
@@ -132,38 +132,38 @@ void main(void) {
      c->yllim = lims[1][0];
      c->yulim = lims[1][1];
      }*/
-    void change(newPlayer *n,char str[7],int16_t value) {
-        if (str == "color"){
+    void change(newPlayer *n,char str[7],int value) {
+        if (strncmp(str,"color",5)==0){
             n->color = value;
-        } else if (str == "x"){
+        } else if (strncmp(str,"x",1)==0){
             n->x = value;
-        } else if (str == "y"){
+        } else if (strncmp(str,"y",1)==0){
             n->y = value;
-        } else if (str == "xvel"){
+        } else if (strncmp(str,"xvel",4)==0){
             n->xvel = value;
-        } else if (str == "yvel"){
+        } else if (strncmp(str,"yvel",4)==0){
             n->yvel = value;
-        } else if (str == "width"){
+        } else if (strncmp(str,"width",5)==0){
             n->width = value;
-        } else if (str == "height"){
+        } else if (strncmp(str,"height",6)==0){
             n->height = value;
         }
     }
     void drawPlayer(newPlayer n){
         gfx_Rectangle(n.x,n.y,n.width,n.height);
     }
-    void drawBlock(int16_t block[4]){
+    void drawBlock(int block[4]){
         gfx_Rectangle(block[0],block[1],block[2],block[3]);
     }
     //Usage: drawBlocks(levels[curLevel],nBlocks[curLevel]);
-    void drawBlocks(int16_t **blocks,uint16_t length){
-        uint16_t i;
+    void drawBlocks(int **blocks,unsigned int length){
+        unsigned int i;
         for (i = 0;i < length;i++){
             drawBlock(blocks[i]);
         }
     }
-    int16_t * getRect_player(newPlayer n){
-        int16_t dim[4];
+    int * getRect_player(newPlayer n){
+        int dim[4];
         dim[0] = n.x;
         dim[1] = n.y;
         dim[2] = n.width;
@@ -171,16 +171,16 @@ void main(void) {
         return dim;
     }
     
-    int16_t * playerCAdjust(newPlayer n,int16_t x,int16_t y){
-        int16_t *dim;
+    int * playerCAdjust(newPlayer n,int x,int y){
+        int *dim;
         dim = getRect_player(n);
         dim[0] -= x;
         dim[1] -= y;
         return dim;
     }
     
-    int16_t * blockCAdjust(int16_t block[4],int16_t x,int16_t y){
-        int16_t dim[4];
+    int * blockCAdjust(int block[4],int x,int y){
+        int dim[4];
         dim[0] = block[0] - x;
         dim[1] = block[1] - y;
         dim[2] = block[2];
@@ -188,26 +188,26 @@ void main(void) {
         return dim;
     }
     //Usage: blockCAdjust(levels[curLevel],camera.x,camera.y,nLevels[curLevel]);
-    //blocksCAdjust(int16_t blocks[][4],int16_t x,int16_t y,uint16_t length)
-    int16_t ** blocksCAdjust(int16_t **blocks,int16_t x,int16_t y,uint16_t length){
-        //int16_t level[length][4];
-        int16_t **level;
-        uint16_t i;
+    //blocksCAdjust(int blocks[][4],int x,int y,unsigned int length)
+    int ** blocksCAdjust(int **blocks,int x,int y,unsigned int length){
+        //int level[length][4];
+        int **level;
+        unsigned int i;
         for (i = 0;i<length;i++){
             level[i] = blockCAdjust(blocks[i],x,y);
         }
         return level;
     }
-    bool collision(newPlayer n, int16_t block[4]){
+    bool collision(newPlayer n, int block[4]){
         return n.x < block[0] + block[2] &&
         n.x + n.width > block[2] &&
         n.y < block[1] + block[3] &&
         n.y + n.height > block[1];
     }
     //Usage: levelCollision(player,levels[curLevel],nBlocks[curLevel]);
-    //levelCollision(newPlayer n, int16_t *blocks,uint16_t length)
-    bool levelCollision(newPlayer n, int16_t **blocks,uint16_t length){
-        uint16_t i;
+    //levelCollision(newPlayer n, int *blocks,unsigned int length)
+    bool levelCollision(newPlayer n, int **blocks,unsigned int length){
+        unsigned int i;
         for (i = 0;i < length;i++){
             if (collision(n,blocks[i])) {
                 return true;
@@ -216,7 +216,7 @@ void main(void) {
         return false;
     }
     //Usage: levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],x,y)
-    bool levelCollisionOffset(newPlayer n, int16_t ** blocks, uint16_t length, int8_t x, int8_t y){
+    bool levelCollisionOffset(newPlayer n, int ** blocks, unsigned int length, int8_t x, int8_t y){
         bool ret;
         newPlayer temp = n;
         temp.x += x;
@@ -226,8 +226,8 @@ void main(void) {
     }
     char levelstr[10];
     char posstr[10];
-    int16_t i;
-    int16_t j;
+    int i;
+    int j;
     bool jumppressed = false;
     sprintf(levelstr,"Level %d",curLevel);
     colors my_color;
@@ -276,7 +276,7 @@ void main(void) {
         } else {
             i = 0;
             while (levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],0,i))
-                i += (int16_t) copysign(1,player.yvel);
+                i += (int) copysign(1,player.yvel);
             player.y -= i;
             player.yvel = 0;
         }
