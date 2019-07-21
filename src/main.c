@@ -1,4 +1,4 @@
-// Program Name: ARBIPLAT
+// Program Name: PLATC
 // Author(s): SomeCoolGuy
 // Description: A Platformer
 /* Keep these headers */
@@ -47,7 +47,7 @@ typedef struct {
     int xulim; //upper limit (LCD_WIDTH)
     int yulim; //upper limit (LCD_HEIGHT)
     int (*pFunc) (newPlayer n,int x,int y);
-    int (*bFunc) (int **blocks,int x,int y,unsigned int length);
+    int (*bFunc) (int blocks[][4],int x,int y,unsigned int length);
 } camera;
 /*void initCamera(camera * c,int xy[2],int lims[2][2]){
  c->x = xy[0];
@@ -81,7 +81,7 @@ void drawBlock(int block[4]){
     gfx_Rectangle(block[0],block[1],block[2],block[3]);
 }
 //Usage: drawBlocks(levels[curLevel],nBlocks[curLevel]);
-void drawBlocks(int **blocks,unsigned int length){
+void drawBlocks(int blocks[][4],unsigned int length){
     unsigned int i;
     for (i = 0;i < length;i++){
         drawBlock(blocks[i]);
@@ -114,7 +114,7 @@ int * blockCAdjust(int block[4],int x,int y){
 }
 //Usage: blockCAdjust(levels[curLevel],camera.x,camera.y,nLevels[curLevel]);
 //blocksCAdjust(int blocks[][4],int x,int y,unsigned int length)
-int ** blocksCAdjust(int **blocks,int x,int y,unsigned int length){
+int ** blocksCAdjust(int blocks[][4],int x,int y,unsigned int length){
     //int level[length][4];
     int **level;
     unsigned int i;
@@ -133,7 +133,7 @@ bool collision(newPlayer n, int block[4]){
 }
 //Usage: levelCollision(player,levels[curLevel],nBlocks[curLevel]);
 //levelCollision(newPlayer n, int *blocks,unsigned int length)
-bool levelCollision(newPlayer n, int **blocks ,unsigned int length){
+bool levelCollision(newPlayer n, int blocks[][4] ,unsigned int length){
     unsigned int i;
     for (i = 0;i < length;i++){
         if (collision(n,blocks[i])) {
@@ -143,7 +143,7 @@ bool levelCollision(newPlayer n, int **blocks ,unsigned int length){
     return false;
 }
 //Usage: levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],x,y);
-bool levelCollisionOffset(newPlayer n, int **blocks, unsigned int length, int8_t x, int8_t y){
+bool levelCollisionOffset(newPlayer n, int blocks[][4], unsigned int length, int8_t x, int8_t y){
     bool ret;
     newPlayer temp = n;
     temp.x += x;
@@ -242,7 +242,7 @@ void main(void) {
     while (gameRunning){
         gfx_SetColor(*levelColors[curLevel]);
         gfx_FillRectangle(player.x,player.y,player.width,player.height);
-        player.falling = !levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],0,1);
+        player.falling = !levelCollisionOffset(player,levels[curLevel],5,0,1);
         if (!levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],0,player.yvel)){
             player.y += player.yvel;
             player.yvel +=1;
@@ -310,11 +310,12 @@ void main(void) {
                 initLevel(*levelColors[curLevel]);
                 player.spawn[0] = pSpawn[curLevel][0];
                 player.spawn[1] = pSpawn[curLevel][1];
-                respawn(player);
+                respawn(&player);
             }
         }
         gfx_BlitBuffer();
     }
+    i=1;
     while (!kb_AnyKey()) kb_Scan();
     //free(levels);levels=NULL;
     gfx_End();
