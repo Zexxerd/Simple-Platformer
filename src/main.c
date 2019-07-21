@@ -14,13 +14,10 @@
 #include <graphx.h>
 #include <keypadc.h>
 
+#define copysign(x, y) x * (fabs(y)/y)
 //#include "obj.h"
-#ifndef LCD_WIDTH
-#ifndef LCD_HEIGHT
-#define LCD_WIDTH 320
-#define LCD_HEIGHT 240
-#endif
-#endif
+
+
 /*Player Stuff*/
 typedef enum colors {
     black = 0x00,
@@ -126,15 +123,17 @@ int ** blocksCAdjust(int **blocks,int x,int y,unsigned int length){
     }
     return level;
 }
+//bool collision(newPlayer n, int block[4]){
 bool collision(newPlayer n, int block[4]){
-    return n.x < block[0] + block[2] &&
+    /*return n.x < block[0] + block[2] &&
     n.x + n.width > block[2] &&
     n.y < block[1] + block[3] &&
-    n.y + n.height > block[1];
+    n.y + n.height > block[1];*/
+    return gfx_CheckRectangleHotspot(n.x,n.y,n.width,n.height,block[0],block[1],block[2],block[3]);
 }
 //Usage: levelCollision(player,levels[curLevel],nBlocks[curLevel]);
 //levelCollision(newPlayer n, int *blocks,unsigned int length)
-bool levelCollision(newPlayer n, int **blocks,unsigned int length){
+bool levelCollision(newPlayer n, int **blocks ,unsigned int length){
     unsigned int i;
     for (i = 0;i < length;i++){
         if (collision(n,blocks[i])) {
@@ -143,8 +142,8 @@ bool levelCollision(newPlayer n, int **blocks,unsigned int length){
     }
     return false;
 }
-//Usage: levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],x,y)
-bool levelCollisionOffset(newPlayer n, int ** blocks, unsigned int length, int8_t x, int8_t y){
+//Usage: levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],x,y);
+bool levelCollisionOffset(newPlayer n, int **blocks, unsigned int length, int8_t x, int8_t y){
     bool ret;
     newPlayer temp = n;
     temp.x += x;
@@ -152,65 +151,30 @@ bool levelCollisionOffset(newPlayer n, int ** blocks, unsigned int length, int8_
     ret = levelCollision(temp,blocks,length);
     return ret;
 }
-/*End of player stuff*/
-extern char levelstr[10];
-extern char posstr[10];
-extern uint8_t levelColors[1][6];
-extern unsigned int curLevel;
 
 void respawn(newPlayer *n){
     n->x = n->spawn[0];
     n->y = n->spawn[1];
 }
-void initLevel(void) {
-    gfx_FillScreen(*levelColors[curLevel]);
+void initLevel(uint8_t index) {
+    gfx_FillScreen(index);
 }
-void nextLevel(void) {
+/*void nextLevel(void) {
     curLevel += 1;
     sprintf(levelstr,"Level %d",curLevel);
-}
+}*/
 /* Other available headers */
 // including stdarg.h, setjmp.h, assert.h, ctype.h, float.h, iso646.h, limits.h, errno.h
 
-/* Put your function prototypes here */
-/*int playerCAdjust(newPlayer n);
-int blockCAdjust(int block[4]);
-bool collision(newPlayer n,int block[4]);
-bool levelCollision(newPlayer n,int * level);*/
-/* Put all your globals here. */
-
-/*In Python, a level-set would look like this:
- [
-    [ #Level 1
-        Platform(0,280,400,20), #one Platform is a 4-element list (Rect).
-        Platform(0,100,60,100),
-        Platform(100,180,200,20),
-        Platform(301,0,40,200),
-        Platform(200,148,57,10),
-    ]
-    [ #Level 2
-        Platform(0,300,400,0),
-        Platform(300,240,30,60),
-    ]
-    #More levels...
- ]
- But because TI-84+ CE programs don't include Pygame,
- We have to use 4-element arrays to be able to replicate Rects in Pygame.
- Unfortunately, this is complicated by the fact that arrays are technically
- pointers to data, and that expanding the array means having to
- allocate, organize, and manage the memory for these arrays dynamically.
- */
-
-/*for (char i = 0;i < sizeof(level)/sizeof(level[0]);i++){
-    // allocate space for each Rect (4-element array) item
-    level[i] = (int[4] *) malloc(10 * sizeof(int[4]));
-}
-level[i][0] = {0,220,320,20};*/
 /* Main program */
 void main(void) {
-    extern char levelstr[10];
-    extern char posstr[10];
-    extern unsigned int curLevel;
+    newPlayer player;
+    camera Camera;
+    kb_key_t key;
+    char levelstr[10];
+    char posstr[10];
+    int i, j;
+    unsigned int curLevel;
     uint8_t nLevels = 1;
     unsigned int nBlocks[1] = {5};
     int levels[1][5][4] = {
@@ -242,18 +206,18 @@ void main(void) {
     uint8_t levelColors[1][6] = {
         {0xFF,0x00,0x00,0x00,0x00,0x00}
     };
-    int i;
-    int j;
+    
     bool jumppressed = false;
+    bool gameRunning = true;
     sprintf(levelstr,"Level %d",curLevel);
-    newPlayer player;
     player.x = 0;
     player.y = 0;
     player.xvel = 0;
     player.yvel = 0;
     player.width = 20;
     player.height = 20;
-    player.spawn = {0,0};
+    player.spawn[0] = 0;
+    player.spawn[1] = 0;
     /*newPlayer player = {
         0x07, // color
         0, 0, // x, y
@@ -261,28 +225,27 @@ void main(void) {
         20, 20, // width, height
         { 0, 0 }
     };*/
-    camera Camera;
+    
     Camera.xllim = 0;
     Camera.xulim = 0;
     Camera.yllim = 0;
     Camera.yulim = 0;
-    Camera.pFunc = &playerCAdjust;
-    Camera.bFunc = &blocksCAdjust;
+    //Camera.pFunc = playerCAdjust;
+    //Camera.bFunc = blocksCAdjust;
     
-    kb_key_t key;
-    gameRunning = true;
     
-    gfx_SetTextScale(2,2);
     gfx_Begin();
+    gfx_SetTextScale(2,2);
     gfx_SetDrawBuffer();
-    initLevel();
+    
+    initLevel(*levelColors[curLevel]);
     while (gameRunning){
         gfx_SetColor(*levelColors[curLevel]);
         gfx_FillRectangle(player.x,player.y,player.width,player.height);
         player.falling = !levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],0,1);
-        if !levelCollisionOffset(player,levels[curLevel],0,player.yvel){
+        if (!levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],0,player.yvel)){
             player.y += player.yvel;
-            yvel +=1;
+            player.yvel +=1;
         } else {
             i = 0;
             while (levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],0,i))
@@ -296,16 +259,16 @@ void main(void) {
             jumppressed = false;
         if (key & kb_Left) {
             i=0;
-            while (!(levelCollisionOffset(player,levels[curLevel],-1,0) || i >= 4)) {
-                if (player.x > levelLimit[curLevel][0][0])
+            while (!(levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],-1,0) || i >= 4)) {
+                if (player.x > levelLimits[curLevel][0][0])
                     player.x -= 1;
                 i+=1;
             }
         }
         if (key & kb_Right) {
             i=0;
-            while (!(levelCollisionOffset(player,levels[curLevel],1,0) || i >= 4)) {
-                if (player.x > levelLimit[curLevel][0][1])
+            while (!(levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],1,0) || i >= 4)) {
+                if (player.x > levelLimits[curLevel][0][1])
                     player.x += 1;
                 i+=1;
             }
@@ -313,7 +276,7 @@ void main(void) {
         if ((key & kb_Up)&!jumppressed) {
             if (!(player.falling&!(player.yvel))){
                 for(i=-12;i<0;i++) {
-                    if (!levelCollisionOffset(player,levels[curLevel],0,i)){
+                    if (!levelCollisionOffset(player,levels[curLevel],nBlocks[curLevel],0,i)){
                         player.yvel = i;
                         jumppressed = true;
                         break;
@@ -323,10 +286,12 @@ void main(void) {
         }
         gfx_SetColor(*levelColors[curLevel]);
         gfx_FillRectangle(0,0,strlen(levelstr)*16,16);
+        
         gfx_SetColor(0x00);
         gfx_SetTextScale(2,2);
         gfx_PrintStringXY(levelstr,0,0);
-        for (i=0;i<nBlocks[curLevel],i++){
+        
+        for (i = 0;i < nBlocks[curLevel];i++){
             gfx_SetColor(levelColors[curLevel][i+1]);
             gfx_FillRectangle(levels[curLevel][i][0],levels[curLevel][i][1],levels[curLevel][i][2],levels[curLevel][i][3]);
         }
@@ -338,19 +303,20 @@ void main(void) {
                 gameRunning = false;
                 gfx_SetColor(0x00);
                 gfx_SetTextScale(3,3);
-                gfx_PrintStringXY("YOU WIN!",strlen("YOU WIN!")*24-(LCD_WIDTH/2));
+                gfx_PrintStringXY("YOU WIN!",strlen("YOU WIN!")*24-(LCD_WIDTH/2),96);
             } else {
-                nextLevel();
-                initLevel();
-                player.spawn = pSpawn[curLevel];
-                respawn();
+                curLevel += 1;
+                sprintf(levelstr,"Level %d",curLevel);
+                initLevel(*levelColors[curLevel]);
+                player.spawn[0] = pSpawn[curLevel][0];
+                player.spawn[1] = pSpawn[curLevel][1];
+                respawn(player);
             }
         }
         gfx_BlitBuffer();
     }
-    i=1;
-    while (!kb_AnyKey());kb_Scan();
-    free(levels);levels=NULL;
+    while (!kb_AnyKey()) kb_Scan();
+    //free(levels);levels=NULL;
     gfx_End();
     
 }
